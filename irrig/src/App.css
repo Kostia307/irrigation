@@ -1,0 +1,16 @@
+/*body {
+    background-color: #c9d2ff;
+}*/
+
+div {
+    text-align: center;
+    text-shadow: 1;
+    font-family: sans-serif;
+    font-size: medium;
+}
+
+.no-wrap {
+    white-space: nowrap;
+    display: inline-block;
+}
+
