@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Cookies from 'js-cookie'
-import { AppBar, IconButton, Toolbar, Typography, SvgIcon, Button, Box } from '@mui/material'
+import { AppBar, IconButton, Toolbar, Typography, SvgIcon, Button, Box, CircularProgress } from '@mui/material'
 
 function LightModeIcon(props) {
   return (
@@ -25,7 +25,8 @@ function AgentSettings() {
     const { username } = location.state || {}
     const { id } = location.state || {}
     const navigate = useNavigate()
-    const [ agent_gt, setAgent_gt ] = useState([])
+    const [ agentGt, setAgentGt ] = useState(null)
+    const [isLoading, setIsLoading] = useState(true)
 
     const [darkMode, setDarkmode] = React.useState(false)
 
@@ -69,21 +70,35 @@ function AgentSettings() {
             },
             credentials: 'include'
         })
+        //console.log(response)
         if(response.ok) {
+            
             const data = await response.json()
-            setAgent_gt(data)
-            console.log(agent_gt)
+            setAgentGt(data)
+            //console.log(agentGt)
+            //console.log(agentGt.author)
         }
         else {
             console.error('Failed to fetch data', response.status)
+            setAgentGt({})
         }
       } catch(error) {
         console.error('Error fetching data: ', error)
+        setAgentGt({})
+      } finally {
+        setIsLoading(false)
       }
     }  
-
     fetchData()
-    }, [])
+    }, [agent.id, navigate])
+
+    if (isLoading){
+      return <Box><CircularProgress /></Box>
+    }
+
+    if (!agentGt || Object.keys(agentGt).length === 0) {
+      return <Typography>Error loading agent details. Please try again</Typography>
+    }
 
   return (
     <>
@@ -136,13 +151,13 @@ function AgentSettings() {
           Description: { agent.description }
         </Typography>
         <Typography variant="subtitle1" align='left'>
-          Unique Identificator: { agent_gt.unigue_identificator }
+          Unique Identificator: { agentGt.unigue_identificator }
         </Typography>
         <Typography variant="subtitle1" align='left'>
           Created at: { new Date(agent.created_at).toLocaleString() }
         </Typography>
         <Typography variant="subtitle1" align='left'>
-          Author: { agent_gt.author.username }
+          Author: { agentGt.author.username }
         </Typography>
       </Box>
 
@@ -163,7 +178,7 @@ function AgentSettings() {
           variant="contained"
           color="info"
           sx={{ marginRight: 3 }}
-          onClick={() => navigate('/main', { state: { username: username, id: id } })}
+          onClick={() => navigate('/main', { state: { agent, username: username, id: id } })}
         >
         Main Page
         </Button>
