@@ -132,8 +132,6 @@ function CreateAgent() {
         label="Location"
         placeholder="Agent location"
         margin="normal"
-        multiline
-        rows={3}
         value={location}
         onChange={(e) => setLocation(e.target.value)}
       />
@@ -144,6 +142,8 @@ function CreateAgent() {
         label="Description"
         placeholder="Agent description"
         margin="normal"
+        multiline
+        rows={3}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />

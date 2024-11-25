@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Cookies from 'js-cookie'
-import { AppBar, IconButton, Toolbar, Typography, SvgIcon, Button, Box, CircularProgress } from '@mui/material'
+import { AppBar, IconButton, Toolbar, Typography, SvgIcon, Button, Box, CircularProgress, Modal, TextField, Backdrop, Fade } from '@mui/material'
 
 function LightModeIcon(props) {
   return (
@@ -27,8 +27,17 @@ function AgentSettings() {
     const navigate = useNavigate()
     const [ agentGt, setAgentGt ] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [modalOpen, setModalOpen] = useState(false)
 
     const [darkMode, setDarkmode] = React.useState(false)
+
+    const [formValues, setFormValues] = useState({
+      title: agentGt?.title || '',
+      description: agentGt?.description || '',
+      location: agentGt?.location || '',
+      unigue_identificator: agentGt?.unigue_identificator || ''
+    });
+    const [initialValues, setInitialValues] = useState(null)
 
     const handleThemeToggle = () => {
     setDarkmode((prevMode) => !prevMode)
@@ -50,9 +59,20 @@ function AgentSettings() {
         id: id
         }})
     }
-
+    
     useEffect(() => {
       const agent_id = agent.id
+
+      if (agentGt && JSON.stringify(agentGt) !== JSON.stringify(initialValues)) {
+        setInitialValues(agentGt)
+        setFormValues({
+          title: agentGt.title,
+          description: agentGt.description,
+          location: agentGt.location,
+          unigue_identificator: agentGt.unigue_identificator
+        })
+      }
+
       const fetchData = async () => { 
       try{
         const token = Cookies.get('authToken')
@@ -66,7 +86,7 @@ function AgentSettings() {
             method: 'GET',
             headers: {
               'Content-type': 'application/json',
-              'authorization': 'Bearer ${token}'
+              'authorization': `Bearer ${token}`
             },
             credentials: 'include'
         })
@@ -88,9 +108,11 @@ function AgentSettings() {
       } finally {
         setIsLoading(false)
       }
-    }  
-    fetchData()
-    }, [agent.id, navigate])
+    }
+
+    fetchData();
+
+    }, [agentGt])
 
     if (isLoading){
       return <Box><CircularProgress /></Box>
@@ -98,6 +120,80 @@ function AgentSettings() {
 
     if (!agentGt || Object.keys(agentGt).length === 0) {
       return <Typography>Error loading agent details. Please try again</Typography>
+    }
+
+    const editAgent = async () => {
+      const agent_id = agent.id
+      const updatedAgentData = {
+        title: formValues.title,
+        location: formValues.location,
+        description: formValues.description,
+        unigue_identificator: formValues.unigue_identificator,
+        author_id: agentGt.author.id 
+      }
+      console.log(updatedAgentData)
+      try {
+        const token = Cookies.get('authToken')
+
+        if (!token) {
+          console.error('No token found, redirecting to login')
+          navigate('/')
+          return
+        }
+
+        const response = await fetch(`https://irrigationsystem.onrender.com/api/v1/agent/${agent_id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'authorization': 'Bearer ${token}'
+          },
+          credentials: 'include',
+          body: JSON.stringify(updatedAgentData)
+        })
+
+        if (!response.ok) {
+          throw new Error(`Failed to update agent: ${response.status} ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        console.log('Agent updated successfully: ', data)
+      } catch (error) {
+        console.error('Error updating agent: ', error.message)
+      }
+    }
+
+    const handleInputChange = (e) => {
+      const { name, value } = e.target;
+      setFormValues((prevValues) => ({
+        ...prevValues,
+        [name]: value,
+      }));
+    };
+
+    const handleDelete = async () => {
+      const agent_id = agent.id
+      const confirmation = window.confirm(`Are you sure you want to delete agent №${agent_id}`)
+      if(confirmation){
+        try {
+          const response = await fetch(`https://irrigationsystem.onrender.com/api/v1/agent/${agent_id}`,{
+            method: 'DELETE',
+            headers: {
+            'Content-Type': 'application/json',
+            'authorization': 'Bearer ${token}'
+          },
+          credentials: 'include',
+          })
+
+          if(response.ok) {
+            alert("Deleted successfully!")
+            navigate('/main', { state: { agent, username: username, id: id } })
+          } else {
+            alert("Failed to delete")
+          } 
+        } catch (error) {
+          console.error("Error deleting an agent:", error)
+        }
+      } 
     }
 
   return (
@@ -139,22 +235,22 @@ function AgentSettings() {
     >
       <Box sx={{ marginLeft: 3 }}>
         <Typography variant="subtitle1" align='left'>
-          №: { agent.id}
+          №: { agentGt.id}
         </Typography>
         <Typography variant="subtitle1" align='left'>
-          Title: { agent.title }
+          Title: { agentGt.title }
         </Typography>
         <Typography variant="subtitle1" align='left'>
-          Location: { agent.location }
+          Location: { agentGt.location }
         </Typography>
         <Typography variant="subtitle1" align='left'>
-          Description: { agent.description }
+          Description: { agentGt.description }
         </Typography>
         <Typography variant="subtitle1" align='left'>
           Unique Identificator: { agentGt.unigue_identificator }
         </Typography>
         <Typography variant="subtitle1" align='left'>
-          Created at: { new Date(agent.created_at).toLocaleString() }
+          Created at: { new Date(agentGt.created_at).toLocaleString() }
         </Typography>
         <Typography variant="subtitle1" align='left'>
           Author: { agentGt.author.username }
@@ -168,10 +264,11 @@ function AgentSettings() {
           gap: 1
         }}
       >
-        <Button variant="contained" color="primary" sx={{ marginRight: 3 }}>
+        <Button variant="contained" color="primary" sx={{ marginRight: 3 }} onClick={() => setModalOpen(true)}>
           Edit
         </Button>
-        <Button variant="contained" color="secondary" sx={{ marginRight: 3 }}>
+        
+        <Button variant="contained" color="secondary" sx={{ marginRight: 3 }} onClick={handleDelete}>
           Delete
         </Button>
         <Button
@@ -184,6 +281,68 @@ function AgentSettings() {
         </Button>
       </Box>
     </Box>
+
+    <Modal
+      open={modalOpen}
+      onClose={() => setModalOpen(false)}
+      closeAfterTransition
+      BackdropComponent={Backdrop}
+      BackdropProps={{ timeout: 500 }}
+    >
+      <Fade in={modalOpen}>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 400,
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+            borderRadius: 2,
+            p: 3,
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Edit Agent Details
+          </Typography>
+          <form onSubmit={(e) => {e.preventDefault(); editAgent(formValues); setModalOpen(false)}}>
+            <TextField
+              fullWidth
+              name="title"
+              label="Title"
+              value={formValues.title}
+              onChange={handleInputChange}
+              margin="normal"
+            />
+            <TextField
+              fullWidth
+              name="location"
+              label="Location"
+              value={formValues.location}
+              onChange={handleInputChange}
+              margin="normal"
+            />
+            <TextField
+              fullWidth
+              name="description"
+              label="Description"
+              value={formValues.description}
+              onChange={handleInputChange}
+              margin="normal"
+            />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+              <Button variant="outlined" color="secondary" onClick={() => setModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="contained" color="primary">
+                Save
+              </Button>
+            </Box>
+          </form>
+        </Box>
+      </Fade>
+    </Modal>
     </>
   )
 }
