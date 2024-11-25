@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Cookies from 'js-cookie'
 import { AppBar, IconButton, Toolbar, Typography, SvgIcon, Button, Box, CircularProgress, Modal, TextField, Backdrop, Fade, Stack } from '@mui/material'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import dayjs from 'dayjs';
 
 function LightModeIcon(props) {
   return (
@@ -231,7 +235,27 @@ function AgentSettings() {
     }
 
     const handleWateringDelete = async (watering_id) => {
+      const confirmation = window.confirm(`Are you sure you want to delete this?`)
+      if(confirmation){
+        try {
+          const response = await fetch(`https://irrigationsystem.onrender.com/api/v1/watering/${watering_id}`,{
+            method: 'DELETE',
+            headers: {
+            'Content-Type': 'application/json',
+            'authorization': 'Bearer ${token}'
+          },
+          credentials: 'include',
+          })
 
+          if(response.ok) {
+            alert("Watering deleted successfully!")
+          } else {
+            alert("Failed to delete watering")
+          } 
+        } catch (error) {
+          console.error("Error deleting watering:", error)
+        }
+      }
     }
 
     const handlePlanNew = async (waterForm) => {
@@ -497,22 +521,35 @@ function AgentSettings() {
           <form 
             onSubmit={(e) => {
               e.preventDefault(); 
-              handlePlanNew(wateringFormValues); 
+              handlePlanNew(wateringFormValues) 
               setModalOpen(false)}}>
-            <DateTimePicker
-            label="Date and Time"
-            value={wateringFormValues.appointment_time}
-            onChange={(newValue) => 
-              setWateringFormValues({ ...wateringFormValues, appointment_time: newValue })
-            }
-            renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
-            />
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DateTimePicker
+                sx={{width: '100%'}}
+                fullWidth
+                label="Appointment Date and Time"
+                value={dayjs(wateringFormValues.appointment_time)}
+                onChange={(newValue) => {
+                  setWateringFormValues({
+                    ...wateringFormValues,
+                    appointment_time: dayjs(newValue).format("YYYY-MM-DD HH:mm:ss") 
+                  });
+                }}
+                renderInput={(params) => <TextField {...params} fullWidth margin="normal" InputLabelProps={{ shrink: true }}/>}
+              />
+            </LocalizationProvider>
             <TextField
               fullWidth
+              type='number'
               name="Instensity (seconds)"
               label="Instensity (seconds)"
               value={wateringFormValues.intensity}
-              onChange={handleInputChange}
+              onChange={(e) =>
+                setWateringFormValues((prev) => ({
+                  ...prev,
+                  intensity: parseInt(e.target.value, 10) || '',
+                }))
+              }
               margin="normal"
             />
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
