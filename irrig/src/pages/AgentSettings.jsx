@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Cookies from 'js-cookie'
-import { AppBar, IconButton, Toolbar, Typography, SvgIcon, Button, Box, CircularProgress, Modal, TextField, Backdrop, Fade } from '@mui/material'
+import { AppBar, IconButton, Toolbar, Typography, SvgIcon, Button, Box, CircularProgress, Modal, TextField, Backdrop, Fade, Stack } from '@mui/material'
 
 function LightModeIcon(props) {
   return (
@@ -28,6 +28,7 @@ function AgentSettings() {
     const [ agentGt, setAgentGt ] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
     const [modalOpen, setModalOpen] = useState(false)
+    const [wateringModalOpen, setWateringModalOpen] = useState(false)
 
     const [darkMode, setDarkmode] = React.useState(false)
 
@@ -38,6 +39,12 @@ function AgentSettings() {
       unigue_identificator: agentGt?.unigue_identificator || ''
     });
     const [initialValues, setInitialValues] = useState(null)
+
+    const [waterings, setWaterings] = useState([])
+    const [wateringFormValues, setWateringFormValues] = useState({
+      appointment_time: '',
+      intensity: 0
+    })
 
     const handleThemeToggle = () => {
     setDarkmode((prevMode) => !prevMode)
@@ -90,13 +97,10 @@ function AgentSettings() {
             },
             credentials: 'include'
         })
-        //console.log(response)
         if(response.ok) {
             
             const data = await response.json()
             setAgentGt(data)
-            //console.log(agentGt)
-            //console.log(agentGt.author)
         }
         else {
             console.error('Failed to fetch data', response.status)
@@ -111,6 +115,36 @@ function AgentSettings() {
     }
 
     fetchData();
+
+    const fetchWaterings = async () => {
+      try{
+      const token = Cookies.get('authToken')
+
+      if (!token) {
+        console.error('No token found, redirecting to login')
+        navigate('/')
+        return
+      }
+
+      const response = await fetch('https://irrigationsystem.onrender.com/api/v1/watering',{
+        method: 'GET',
+        headers: {
+          'Content-type': 'application/json',
+          'authorization': `Bearer ${token}`
+          },
+        credentials: 'include'
+      })
+      if(response.ok){
+        const data = await response.json()
+        setWaterings(data)
+      }
+    }catch(error) {
+      console.error('Failed to fetch waterings ', error)
+    }
+
+    }
+
+    fetchWaterings();
 
     }, [agentGt])
 
@@ -196,6 +230,44 @@ function AgentSettings() {
       } 
     }
 
+    const handleWateringDelete = async (watering_id) => {
+
+    }
+
+    const handlePlanNew = async (waterForm) => {
+      const agent_id = agent.id
+      console.log(waterForm)
+      try {
+        const token = Cookies.get('authToken')
+
+        if (!token) {
+          console.error('No token found, redirecting to login')
+          navigate('/')
+          return
+        }
+        const response = await fetch(`https://irrigationsystem.onrender.com/api/v1/watering/${agent_id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'authorization': 'Bearer ${token}'
+          },
+          credentials: 'include',
+          body: JSON.stringify(waterForm),
+        });
+    
+        if (!response.ok) {
+          throw new Error(`Error planning new watering, status: ${response.status}`);
+        }
+    
+        const data = await response.json();
+        console.log('Watering planned successfully:', data);
+      } catch (error) {
+        console.error('Error planning watering:', error);
+      }
+    }
+
+    
+
   return (
     <>
     <AppBar position='fixed' sx={{
@@ -220,6 +292,7 @@ function AgentSettings() {
       </Toolbar>
     </AppBar>
 
+    {/*Agent info box*/}
     <Typography variant='subtitle1' sx={{mt:10}}>Settings of Agent {agent.title}</Typography>
     <Box
       sx={{
@@ -282,6 +355,7 @@ function AgentSettings() {
       </Box>
     </Box>
 
+    {/*Editing modal*/}
     <Modal
       open={modalOpen}
       onClose={() => setModalOpen(false)}
@@ -337,6 +411,116 @@ function AgentSettings() {
               </Button>
               <Button type="submit" variant="contained" color="primary">
                 Save
+              </Button>
+            </Box>
+          </form>
+        </Box>
+      </Fade>
+    </Modal>
+
+    {/*Watering box*/}
+
+    <Box
+      sx={{
+        padding: 2,
+        borderRadius: 2,
+        margin: '16px 0',
+        backgroundColor: 'whitesmoke',
+        marginLeft: 3
+      }}
+    >
+      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h7" textAlign="center" sx={{ flex: 1 }}>
+          Watering Sessions
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => setWateringModalOpen(true)}
+          sx={{ marginLeft: 'auto' }}
+        >
+          Plan New Watering
+        </Button>
+      </Stack>
+
+      {waterings.map((watering) => (
+        <Box
+          key={watering.id}
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '8px',
+            borderBottom: '1px solid #ddd',
+          }}
+        >
+          <Typography>
+            {`Date: ${watering.appointment_time}  Intensity: ${watering.intensity} Host: ${watering.host_agent_id}`}
+          </Typography>
+          <Button
+            variant="outlined"
+            color="error"
+            onClick={() => handleWateringDelete(watering.id)}
+            sx={{ marginLeft: '8px' }}
+          >
+            Delete
+          </Button>
+        </Box>
+      ))}
+    </Box>
+
+    {/* Plannig new watering modal */}
+    <Modal
+      open={wateringModalOpen}
+      onClose={() => setWateringModalOpen(false)}
+      closeAfterTransition
+      BackdropComponent={Backdrop}
+      BackdropProps={{ timeout: 500 }}
+    >
+      <Fade in={wateringModalOpen}>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 400,
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+            borderRadius: 2,
+            p: 3,
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            New Watering
+          </Typography>
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault(); 
+              handlePlanNew(wateringFormValues); 
+              setModalOpen(false)}}>
+            <DateTimePicker
+            label="Date and Time"
+            value={wateringFormValues.appointment_time}
+            onChange={(newValue) => 
+              setWateringFormValues({ ...wateringFormValues, appointment_time: newValue })
+            }
+            renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
+            />
+            <TextField
+              fullWidth
+              name="Instensity (seconds)"
+              label="Instensity (seconds)"
+              value={wateringFormValues.intensity}
+              onChange={handleInputChange}
+              margin="normal"
+            />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+              <Button variant="outlined" color="secondary" onClick={() => setWateringModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="contained" color="primary">
+                Plan
               </Button>
             </Box>
           </form>
