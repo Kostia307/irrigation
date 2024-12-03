@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Cookies from 'js-cookie'
 import { AppBar, IconButton, Toolbar, Typography, SvgIcon, Button, Box, CircularProgress, Modal, TextField, Backdrop, Fade, Stack } from '@mui/material'
@@ -6,6 +6,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import dayjs from 'dayjs';
+import { ThemeContext } from './ThemeContext'
+import { useTheme } from '@emotion/react';
 
 function LightModeIcon(props) {
   return (
@@ -34,7 +36,8 @@ function AgentSettings() {
     const [modalOpen, setModalOpen] = useState(false)
     const [wateringModalOpen, setWateringModalOpen] = useState(false)
 
-    const [darkMode, setDarkmode] = React.useState(false)
+    const { toggleColorMode, mode } = useContext(ThemeContext)
+    const theme  = useTheme()
 
     const [formValues, setFormValues] = useState({
       title: agentGt?.title || '',
@@ -49,11 +52,6 @@ function AgentSettings() {
       appointment_time: '',
       intensity: 0
     })
-
-    const handleThemeToggle = () => {
-    setDarkmode((prevMode) => !prevMode)
-    //TODO: create theme changing function
-    }
 
     const handleLogOut = async () => {
       try {
@@ -297,22 +295,24 @@ function AgentSettings() {
     <AppBar position='fixed' sx={{
       display: 'flex',
       flexDirection: 'row',
-      boxShadow: 3
+      boxShadow: 3,
+      backgroundColor: theme.palette.background.default,
+      color: theme.palette.text.primary
     }}>
       <Toolbar sx={{width: '100%', justifyContent: 'space-between'}}>
         <IconButton
           color='inherit'
-          onClick={handleThemeToggle}
+          onClick={ toggleColorMode }
           edge='start'
           sx={{ marginRight: 2}}
         >
-          { darkMode ? <LightModeIcon /> : <DarkModeIcon />}
+          { mode === 'light' ? <LightModeIcon /> : <DarkModeIcon />}
         </IconButton>
         <Typography component='div' variant='h6' sx={{flexGrow: 1}}>
           Authorized as { username ? username: 'User' }
         </Typography>
-        <Button color="inherit" onClick={ handleCreateAgent } sx={{ marginLeft: 1 }}>Create a new agent</Button>
-        <Button color="inherit" onClick={ handleLogOut } sx={{ marginLeft: 2 }}>Log out</Button>
+        <Button color="inherit" onClick={ handleCreateAgent } sx={{ marginLeft: 1 , color: theme.palette.primary.main}}>Create a new agent</Button>
+        <Button color="inherit" onClick={ handleLogOut } sx={{ marginLeft: 2 , color: theme.palette.secondary.main}}>Log out</Button>
       </Toolbar>
     </AppBar>
 
@@ -321,11 +321,11 @@ function AgentSettings() {
     <Box
       sx={{
         width: "70%",
-        backgroundColor: "whitesmoke",
         padding: 2,
         borderRadius: 2,
         display: "flex",
         alignItems: "center",
+        bgcolor: 'background.paper',
         justifyContent: "space-between",
         marginLeft: 3
       }}
@@ -347,7 +347,7 @@ function AgentSettings() {
           Unique Identificator: { agentGt.unigue_identificator }
         </Typography>
         <Typography variant="subtitle1" align='left'>
-          Created at: { new Date(agentGt.created_at).toLocaleString() }
+          Created at: { dayjs(agentGt.created_at).format("YYYY-MM-DD HH:mm:ss") }
         </Typography>
         <Typography variant="subtitle1" align='left'>
           Author: { agentGt.author.username }
@@ -361,16 +361,16 @@ function AgentSettings() {
           gap: 1
         }}
       >
-        <Button variant="contained" color="primary" sx={{ marginRight: 3 }} onClick={() => setModalOpen(true)}>
+        <Button color="inherit" variant="contained" sx={{ marginRight: 3, color: theme.palette.primary.main }} onClick={() => setModalOpen(true)}>
           Edit
         </Button>
         
-        <Button variant="contained" color="secondary" sx={{ marginRight: 3 }} onClick={handleDelete}>
+        <Button color="inherit" variant="contained" sx={{ marginRight: 3, color: theme.palette.secondary.main }} onClick={handleDelete}>
           Delete
         </Button>
         <Button
           variant="contained"
-          color="info"
+          color="inherit"
           sx={{ marginRight: 3 }}
           onClick={() => navigate('/main', { state: { agent, username: username, id: id } })}
         >
@@ -430,10 +430,10 @@ function AgentSettings() {
               margin="normal"
             />
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-              <Button variant="outlined" color="secondary" onClick={() => setModalOpen(false)}>
+              <Button color="inherit" variant="outlined" sx={{color: theme.palette.secondary.main}} onClick={() => setModalOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" variant="contained" color="primary">
+              <Button color="inherit" type="submit" variant="contained" sx={{color: theme.palette.primary.main}}>
                 Save
               </Button>
             </Box>
@@ -449,7 +449,7 @@ function AgentSettings() {
         padding: 2,
         borderRadius: 2,
         margin: '16px 0',
-        backgroundColor: 'whitesmoke',
+        bgcolor: 'background.paper',
         marginLeft: 3
       }}
     >
@@ -459,9 +459,9 @@ function AgentSettings() {
         </Typography>
         <Button
           variant="contained"
-          color="primary"
+          color="inherit"
           onClick={() => setWateringModalOpen(true)}
-          sx={{ marginLeft: 'auto' }}
+          sx={{ marginLeft: 'auto', color: theme.palette.primary.main }}
         >
           Plan New Watering
         </Button>
@@ -479,13 +479,13 @@ function AgentSettings() {
           }}
         >
           <Typography>
-            {`Date: ${watering.appointment_time}  Intensity: ${watering.intensity} Host: ${watering.host_agent_id}`}
+            {`Date: ${watering.appointment_time} | Intensity: ${watering.intensity} | Host: ${watering.host_agent_id}`}
           </Typography>
           <Button
             variant="outlined"
-            color="error"
+            color="inherit"
             onClick={() => handleWateringDelete(watering.id)}
-            sx={{ marginLeft: '8px' }}
+            sx={{ marginLeft: '8px' , color: theme.palette.secondary.main}}
           >
             Delete
           </Button>
@@ -522,7 +522,7 @@ function AgentSettings() {
             onSubmit={(e) => {
               e.preventDefault(); 
               handlePlanNew(wateringFormValues) 
-              setModalOpen(false)}}>
+              setWateringModalOpen(false)}}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <DateTimePicker
                 sx={{width: '100%'}}
@@ -553,10 +553,10 @@ function AgentSettings() {
               margin="normal"
             />
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-              <Button variant="outlined" color="secondary" onClick={() => setWateringModalOpen(false)}>
+              <Button color="inherit" variant="outlined" sx={{color: theme.palette.secondary.main}} onClick={() => setWateringModalOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" variant="contained" color="primary">
+              <Button color="inherit" type="submit" variant="contained" sx={{color: theme.palette.primary.main}}>
                 Plan
               </Button>
             </Box>

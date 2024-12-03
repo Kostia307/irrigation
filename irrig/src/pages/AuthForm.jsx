@@ -1,12 +1,16 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import { Box, Button, TextField } from '@mui/material'
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import Cookies from 'js-cookie'
+import { ThemeContext } from './ThemeContext';
+import { useTheme } from '@emotion/react';
 
 function AuthForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { toggleColorMode, mode } = useContext(ThemeContext)
+  const theme  = useTheme()
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -67,15 +71,17 @@ function AuthForm() {
       <Box display="flex" justifyContent="space-between" mt={3}>
         <Button
           variant="contained"
+          color='inherit'
           onClick={() => navigate('/register')}
-          sx={{ alignSelf: 'flex-start' }}
+          sx={{ alignSelf: 'flex-start', color: theme.palette.primary.main }}
         >
           Create Account
         </Button>
         <Button
           type="submit"
+          color='inherit'
           variant='contained'
-          sx={{ alignSelf: 'flex-end' }}
+          sx={{ alignSelf: 'flex-end', color: theme.palette.primary.main }}
         >
           Log in
         </Button>

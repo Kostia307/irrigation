@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { Box, TextField, Button } from '@mui/material';
+import { ThemeContext } from './ThemeContext';
+import { useTheme } from '@emotion/react';
 
 function RegisterForm() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { toggleColorMode, mode } = useContext(ThemeContext)
+  const theme  = useTheme()
   const navigate = useNavigate();
 
   const handleRegister = async (e) => {
@@ -78,10 +82,10 @@ function RegisterForm() {
         onChange={(e) => setPassword(e.target.value)}
       />
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-        <Button onClick={() => navigate('/')} variant='contained'>
+        <Button color='inherit' sx={{ color: theme.palette.secondary.main }} onClick={() => navigate('/')} variant='contained'>
           Cancel 
         </Button>
-        <Button type='submit' variant='contained'>
+        <Button color='inherit' sx={{ color: theme.palette.primary.main }} type='submit' variant='contained'>
           Register
         </Button>
       </Box>

@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useContext } from 'react'
 import { AppBar, IconButton, Toolbar, Typography, SvgIcon, Button, Box, TextField } from '@mui/material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Cookies from 'js-cookie'
+import { ThemeContext } from './ThemeContext'
+import { useTheme } from '@emotion/react';
 
 function LightModeIcon(props) {
     return (
@@ -27,14 +29,9 @@ function CreateAgent() {
   const location1 = useLocation()
   const { username } = location1.state || {}
   const { id } = location1.state || {}
+  const { toggleColorMode, mode } = useContext(ThemeContext)
   const navigate = useNavigate();
-
-  const [darkMode, setDarkmode] = React.useState(false)
-
-  const handleThemeToggle = () => {
-    setDarkmode((prevMode) => !prevMode)
-    //TODO: create theme changing function
-  }
+  const theme  = useTheme()
 
   const handleLogOut = async () => {
      try {
@@ -86,25 +83,27 @@ function CreateAgent() {
   
   return (
     <>
-    <AppBar position='fixed' sx={{
+   <AppBar position='fixed' sx={{
       display: 'flex',
       flexDirection: 'row',
-      boxShadow: 3
+      boxShadow: 3,
+      backgroundColor: theme.palette.background.default,
+      color: theme.palette.text.primary
     }}>
       <Toolbar sx={{width: '100%', justifyContent: 'space-between'}}>
         <IconButton
           color='inherit'
-          onClick={handleThemeToggle}
+          onClick={ toggleColorMode }
           edge='start'
           sx={{ marginRight: 2}}
         >
-          { darkMode ? <LightModeIcon /> : <DarkModeIcon />}
+          { mode === 'light' ? <LightModeIcon /> : <DarkModeIcon />}
         </IconButton>
         <Typography component='div' variant='h6' sx={{flexGrow: 1}}>
           Authorized as { username ? username: 'User' }
         </Typography>
-        <Button color="inherit" sx={{ marginLeft: 1 }}>Create a new agent</Button>
-        <Button color="inherit" onClick={ handleLogOut } sx={{ marginLeft: 2 }}>Log out</Button>
+        <Button color="inherit" onClick={ handleCreateAgent } sx={{ marginLeft: 1 , color: theme.palette.primary.main}}>Create a new agent</Button>
+        <Button color="inherit" onClick={ handleLogOut } sx={{ marginLeft: 2 , color: theme.palette.secondary.main}}>Log out</Button>
       </Toolbar>
     </AppBar>
 
@@ -158,10 +157,10 @@ function CreateAgent() {
         onChange={(e) => setUniqueIdentificator(e.target.value)}
       />
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-        <Button onClick={() => navigate('/main', {state: {username: username, id: id}})} variant='contained'>
+        <Button color="inherit" onClick={() => navigate('/main', {state: {username: username, id: id}})} variant='contained' sx={{color: theme.palette.secondary.main}}>
           Cancel 
         </Button>
-        <Button type='submit' variant='contained'>
+        <Button color="inherit" type='submit' variant='contained' sx={{color: theme.palette.primary.main}}>
           Create Agent
         </Button>
       </Box>
